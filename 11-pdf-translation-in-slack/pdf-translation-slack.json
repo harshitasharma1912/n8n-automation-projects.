@@ -1,0 +1,204 @@
+{
+  "name": "pdf translation in slack",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "c3465cbc-a079-4129-a99d-f3cfce641288",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "url": "https://ncertbooks.solutions/wp-content/uploads/2020/01/jess201.pdf",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "87ab679e-c6a0-4626-8406-707c78bc1a9b",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        640,
+        240
+      ],
+      "id": "74f661f3-81eb-4dac-ad79-d6b8b2a9c0e2",
+      "name": "Google Gemini Chat Model"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a professional translator.\n\nTask:\n\n1. Read the provided English text.\n2. Translate the content into Punjabi (Gurmukhi script) and Hindi.\n3. Preserve the original meaning and context.\n4. Create a concise summary of approximately 150 words in Punjabi.\n5. Return plain text only.\n6. Do not use markdown, HTML, code blocks, or explanations.\n\nText:\n{{ $json.text }}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        496,
+        0
+      ],
+      "id": "5b4c9b69-60b2-420e-a9f2-a2ab4f5b668a",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "file",
+        "options": {
+          "channelId": "YOUR_SLACK_CHANNEL_ID",
+          "initialComment": "📘 PDF Translation Completed  Translated file attached."
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        1376,
+        0
+      ],
+      "id": "b1128812-3a98-4663-8488-27e1cc252896",
+      "name": "Upload a file"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.pdfshift.io/v3/convert/pdf",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "source",
+              "value": "={{ $json.html }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1200,
+        0
+      ],
+      "id": "ceb33e31-88b6-4033-86a6-ae75e96e5ab2",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $json.text;\n\nconst html = `\n<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n<style>\nbody{\n    font-family: Arial, sans-serif;\n    margin:40px;\n    line-height:1.6;\n}\nh1,h2,h3{\n    color:#1e3a8a;\n}\npre{\n    background:#f4f4f4;\n    padding:10px;\n}\ntable{\n    border-collapse:collapse;\n    width:100%;\n}\ntd,th{\n    border:1px solid #ccc;\n    padding:8px;\n}\n</style>\n</head>\n\n<body>\n\n${content.replace(/\\n/g,\"<br>\")}\n\n</body>\n</html>\n`;\n\nreturn [\n{\njson:{\nhtml\n}\n}\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        0
+      ],
+      "id": "8efed202-0708-4c49-aa4f-531ee2735baf",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Upload a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "tags": []
+}
