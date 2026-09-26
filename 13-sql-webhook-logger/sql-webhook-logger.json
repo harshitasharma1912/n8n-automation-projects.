@@ -1,0 +1,108 @@
+{
+  "name": "sql",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "your-webhook-path",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ee1426ca-0abc-4490-8a6b-bc8295f60236",
+      "name": "Webhook"
+    },
+    {
+      "parameters": {
+        "table": {
+          "__rl": true,
+          "value": "form1",
+          "mode": "list",
+          "cachedResultName": "form1"
+        },
+        "dataMode": "defineBelow",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "Id",
+              "value": "={{ $json.body.id }}"
+            },
+            {
+              "column": "Name",
+              "value": "={{ $json.body.name }}"
+            },
+            {
+              "column": "Age",
+              "value": "={{ $json.body.age }}"
+            },
+            {
+              "column": "Class",
+              "value": "={{ $json.body.class }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        208,
+        0
+      ],
+      "id": "682bf558-b8a2-499c-aaf0-d6546efc5554",
+      "name": "Insert rows in a table"
+    },
+    {
+      "parameters": {
+        "sendTo": "your-email@gmail.com",
+        "subject": "new student added",
+        "emailType": "text",
+        "message": "=Name: {{ $('Webhook').item.json.body.name }}\nAge: {{ $('Webhook').item.json.body.age }}\nClass: {{ $('Webhook').item.json.body.class }}\nid: {{ $('Webhook').item.json.body.id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "bffab5a7-1e52-48e4-9b4d-ae1ca8f26194",
+      "name": "Send a message"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Insert rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert rows in a table": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "tags": []
+}
