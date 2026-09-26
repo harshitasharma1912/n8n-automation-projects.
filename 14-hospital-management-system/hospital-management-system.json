@@ -1,0 +1,567 @@
+{
+  "name": "Hospital Management System",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "YOUR_WEBHOOK_PATH",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        -192
+      ],
+      "id": "38acf493-22cc-4c49-860d-9f463cdb260e",
+      "name": "Webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": true,\n  \"message\": \"Appointment submitted successfully\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1168,
+        -64
+      ],
+      "id": "5ec8e069-478b-4c15-bd0d-63d5785fbc9d",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "create",
+        "projectId": "YOUR_FIREBASE_PROJECT_ID",
+        "collection": "appointments",
+        "columns": "fullName, phoneNumber, email, appointmentDate, message, status",
+        "simple": false
+      },
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        576,
+        -64
+      ],
+      "id": "ddf5d92e-d566-4c71-addf-7a505fe9fad1",
+      "name": "Create a document"
+    },
+    {
+      "parameters": {
+        "sendTo": "your-admin-email@gmail.com",
+        "subject": "New Appointment Request - CityCare Hospital",
+        "emailType": "text",
+        "message": "=New appointment request received.  Patient Name: {{$node[\"Webhook\"].json[\"body\"][\"fullName\"]}}  Phone: {{$node[\"Webhook\"].json[\"body\"][\"phoneNumber\"]}}  Email: {{$node[\"Webhook\"].json[\"body\"][\"email\"]}}  Appointment Date: {{$node[\"Webhook\"].json[\"body\"][\"appointmentDate\"]}}  Concern: {{$node[\"Webhook\"].json[\"body\"][\"message\"]}}  Please check Firestore for full details.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        -64
+      ],
+      "id": "1ef95703-e00a-41b3-9b41-f347736b8f46",
+      "name": "send admin notification"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Webhook').item.json.body.email }}",
+        "subject": "Appointment Request Received",
+        "emailType": "text",
+        "message": "=Hello {{$('Webhook').item.json.body.fullName}}  We have received your appointment request.  Date: {{$('Webhook').item.json.body.appointmentDate}}  Concern: {{$('Webhook').item.json.body.message}}  Thank you, CityCare Hospital",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        768,
+        -64
+      ],
+      "id": "86333195-ba1e-4238-8cdc-ac8c69cd4286",
+      "name": "gmail patient"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "852f364d-4e3c-4d85-9bb8-97fa5d95ff3c",
+              "name": "fullName",
+              "value": "={{ $json.body.fullName }}",
+              "type": "string"
+            },
+            {
+              "id": "db909f67-de8a-4b90-a0e8-03d3da0eacd2",
+              "name": "phoneNumber",
+              "value": "={{ $json.body.phoneNumber }}",
+              "type": "string"
+            },
+            {
+              "id": "2a5a2b4f-d397-49d0-ab65-f6eb8f3db4a4",
+              "name": "email",
+              "value": "={{ $json.body.email }}",
+              "type": "string"
+            },
+            {
+              "id": "90a3ae3e-e0e4-4810-9458-0cb3f3805fc3",
+              "name": "appointmentDate",
+              "value": "={{ $json.body.appointmentDate }}",
+              "type": "string"
+            },
+            {
+              "id": "3995c502-9b81-4325-851d-549fbef9d27d",
+              "name": "message",
+              "value": "={{ $json.body.message }}",
+              "type": "string"
+            },
+            {
+              "id": "25598622-b2cc-48a1-8a12-fffca8d3a179",
+              "name": "status",
+              "value": "pending",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        400,
+        -64
+      ],
+      "id": "5a5aef5d-1c67-452a-a5bd-fa6623b8fffb",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "faeca11d-8cca-4d16-b352-3ce227bf4159",
+              "leftValue": "={{$json.body.action}}",
+              "rightValue": "statusUpdate",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        176,
+        -192
+      ],
+      "id": "5d74d9ac-28bd-4a58-9566-567cc6d3e577",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$json.body.email}}",
+        "subject": "=={{ $json.body.status === \"approved\" ? \"Appointment Approved - CityCare Hospital\" : \"Appointment Rejected - CityCare Hospital\" }}",
+        "emailType": "text",
+        "message": "=={{ $json.body.status === \"approved\" ? \"Hello \" + $json.body.fullName + \",\\n\\nYour appointment has been approved.\\n\\nAppointment Date: \" + $json.body.appointmentDate + \"\\nConcern: \" + $json.body.message + \"\\n\\nPlease arrive 15 minutes before your appointment.\\n\\nThank you,\\nCityCare Hospital\": \"Hello \" + $json.body.fullName + \",\\n\\nYour appointment request has been rejected.\\n\\nPlease choose another date and book again.\\n\\nThank you,\\nCityCare Hospital\"}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        -256
+      ],
+      "id": "e30115f7-5ba9-4dac-958f-5356b138eda5",
+      "name": "gmail status email"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, message: \"Status email sent successfully\" } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        608,
+        -256
+      ],
+      "id": "fdf58ecb-7d3e-453c-a2b2-71d7609660f3",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are CityCare Hospital AI Assistant.\n\nHospital Information:\n\nServices:\n- Cardiology\n- Neurology\n- Orthopedics\n- Gynecology\n- Emergency Care\n- Pharmacy\n- Diagnostics\n- Nursing Care\n\nDoctors:\n- Dr. Anjali Sharma: Cardiologist\n- Dr. Rohit Verma: Neurologist\n- Dr. Sneha Patel: Orthopedic Surgeon\n- Dr. Kiran Mehta: Gynecologist\n\nHospital Timings:\nMonday to Friday, 9:00 AM to 5:30 PM\nPublic Dealing Hours: 9:30 AM to 4:30 PM\nLunch Break: 1:30 PM to 2:00 PM\n\nAddress:\nGround Floor, B Wing, B Block-1, Tech Park, Kapurthala, Punjab - 144603\n\nRules:\nAnswer only hospital-related questions.\nKeep answer short and helpful.\nIf user asks unrelated question, say: \"Sorry, I can only help with CityCare Hospital related questions.\"\n\nUser Question:\n{{$json.body.message}}\n\n",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        336,
+        704
+      ],
+      "id": "0c2af151-e9b1-4413-9e9c-dac90b9ed964",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        336,
+        928
+      ],
+      "id": "bdf77124-a274-4079-97b1-22feabddfd91",
+      "name": "Google Gemini Chat Model"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Appointment data:\n{{ JSON.stringify($json) }}\n\nIf found is false, say:\nSorry, I could not find any appointment with this email.\n\nIf found is true, reply with:\nName\nEmail\nAppointment Date\nStatus\nConcern",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1136,
+        400
+      ],
+      "id": "124538d9-7089-4e5c-bdbb-d45cfb1ff9ef",
+      "name": "Basic LLM Chain1"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1136,
+        608
+      ],
+      "id": "6796204e-c4d3-485f-b7de-411a37bda217",
+      "name": "Google Gemini Chat Model2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const searchedEmail = $node[\"Code in JavaScript2\"].json.email;\n\nconst appointments = $input.all();\n\nconst found = appointments.find(item => {\n  const data = item.json;\n\n  const emailField =\n    data.email ||\n    data.Email ||\n    data.patientEmail ||\n    data.patient_email ||\n    \"\";\n\n  return emailField.toLowerCase().trim() === searchedEmail.toLowerCase().trim();\n});\n\nif (!found) {\n  return [\n    {\n      json: {\n        found: false,\n        email: searchedEmail,\n        message: \"No appointment found\"\n      }\n    }\n  ];\n}\n\nreturn [\n  {\n    json: {\n      found: true,\n      ...found.json\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        400
+      ],
+      "id": "226cc91e-22bb-48ee-b98e-4f3d7c3143f8",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { reply: $json.text } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1520,
+        704
+      ],
+      "id": "bf8ee081-846c-4e0c-8c9b-be26be351c09",
+      "name": "Respond to Webhook2"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "YOUR_WEBHOOK_PATH",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -96,
+        592
+      ],
+      "id": "ae43f5ff-c902-4101-9d57-a65728aa9c5e",
+      "name": "Webhook1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "0df030de-a307-461e-acff-63dae1a2a044",
+              "leftValue": "={{$json.body.message.toLowerCase()}}",
+              "rightValue": "status",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        144,
+        592
+      ],
+      "id": "d964c3a2-4fa4-453b-a880-342289b81ad8",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const message = $node[\"Webhook1\"].json.body.message || \"\";\n\nconst match = message.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/);\n\nreturn [\n  {\n    json: {\n      email: match ? match[0].toLowerCase().trim() : \"\"\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        400
+      ],
+      "id": "3b3e0b98-c218-4a45-a1c1-e153d429c6d1",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "getAll",
+        "projectId": "citycarehospital-abdaa",
+        "collection": "appointments",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        656,
+        400
+      ],
+      "id": "6982370e-788a-4686-8899-edb067a03357",
+      "name": "Get many documents1"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a document": {
+      "main": [
+        [
+          {
+            "node": "gmail patient",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "send admin notification": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gmail patient": {
+      "main": [
+        [
+          {
+            "node": "send admin notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Create a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "gmail status email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gmail status email": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Get many documents1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many documents1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "binaryMode": "separate"
+  }
+}
