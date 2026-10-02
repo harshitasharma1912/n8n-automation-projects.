@@ -1,0 +1,149 @@
+{
+  "name": "RAG College Study Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "9ddb2481-6fa9-4300-af80-134ae28539b0",
+      "name": "When chat message received"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a College Study Assistant.\n\nYour ONLY source of information for academic questions is the uploaded college study material available through the Simple Vector Store tool.\n\nIMPORTANT RULES:\n\n1. You MUST ALWAYS use the Simple Vector Store tool before answering ANY academic question.\n\n2. NEVER answer an academic question from your own knowledge or memory.\n\n3. First search the Simple Vector Store using the user's complete question and relevant keywords.\n\n4. If relevant information is found, answer ONLY using the retrieved documents.\n\n5. The uploaded material may contain multiple subjects, including Software Engineering, Python, and other college subjects. Search the vector store for the user's specific subject and question.\n\n6. If the retrieved documents do not contain the answer, say exactly:\n\"This information is not available in the uploaded study material.\"\n\n7. Do not hallucinate or add information that is not supported by the retrieved documents.\n\n8. Keep answers simple, clear and suitable for a B.Tech student.\n\n9. For exam questions, structure the answer with:\n- Definition\n- Explanation\n- Key Points\n- Example (only if supported by the study material)\n\nRemember: SEARCH THE SIMPLE VECTOR STORE FIRST, EVERY TIME.\n\nSOURCE CITATION:\nAfter answering the user's academic question, always add the source of the retrieved information.\n\nUse the \"source\" field from the retrieved document metadata.\n\nFormat:\nSource: <PDF filename>\n\nIf multiple retrieved documents were used, list all relevant PDF filenames.\n\nDo not invent a source. Only mention a source if it is present in the retrieved document metadata."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "6141b8c7-c3bd-44c4-8bfa-79bcbc2b7a48",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        80,
+        208
+      ],
+      "id": "64d98beb-4190-4104-8d9d-ca5e2e311f9d",
+      "name": "Google Gemini Chat Model"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        224,
+        208
+      ],
+      "id": "583fc464-d5ba-4a1f-9f8e-a9d01c78583a",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        416,
+        464
+      ],
+      "id": "77599acb-bfd7-4ef7-b813-9b290d2bc84c",
+      "name": "Embeddings Google Gemini1"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "MANDATORY TOOL.\n\nUse this tool for EVERY academic question.\n\nSearch the uploaded college notes before answering.\nNever answer academic questions from your own knowledge.\n\nThe notes contain multiple subjects such as Python and Software Engineering.\nAlways search for the subject and exact question asked by the user.",
+        "memoryKey": {
+          "__rl": true,
+          "mode": "list",
+          "value": "vector_store_key"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.3,
+      "position": [
+        400,
+        272
+      ],
+      "id": "9a55eb2b-004a-4097-814f-2b1734087412",
+      "name": "Simple Vector Store"
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Simple Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}
